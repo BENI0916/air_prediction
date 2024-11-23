@@ -7,6 +7,7 @@ import requests
 import test_module as tm  # 假設 test_module 中包含 predict_pm25 函數
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi.responses import FileResponse
+from fastapi.responses import Response
 
 app = FastAPI()
 scheduler = BackgroundScheduler()
@@ -114,13 +115,23 @@ def metrics():
     """
     return generate_latest()
 
-
 @app.get("/get_image")
 def get_image():
-    """
-    提供最新的圖片文件。
-    """
-    image_path = "predict_img.jpg"  # 圖片的存儲路徑
+    image_path = "predict_img.jpg"  
     if not os.path.exists(image_path):
         raise HTTPException(status_code=404, detail="Image not found.")
-    return FileResponse(image_path, media_type="image/jpeg", filename="predict_img.jpg")
+    
+    with open(image_path, "rb") as f:
+        image_data = f.read()
+    
+    return Response(content=image_data, media_type="image/jpeg")
+
+# @app.get("/get_image")
+# def get_image():
+#     """
+#     提供最新的圖片文件。
+#     """
+#     image_path = "predict_img.jpg"  # 圖片的存儲路徑
+#     if not os.path.exists(image_path):
+#         raise HTTPException(status_code=404, detail="Image not found.")
+#     return FileResponse(image_path, media_type="image/jpeg", filename="predict_img.jpg")
