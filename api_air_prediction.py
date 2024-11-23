@@ -8,6 +8,7 @@ import test_module as tm  # 假設 test_module 中包含 predict_pm25 函數
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi.responses import FileResponse
 from fastapi.responses import Response
+from fastapi.responses import PlainTextResponse
 
 app = FastAPI()
 scheduler = BackgroundScheduler()
@@ -47,7 +48,7 @@ def download_and_predict_task(station: int):
                 print(f"Downloaded latest image: {filename}")
             else:
                 print(f"No new image available yet. HTTP Status: {img_response.status_code}")
-                return
+               # return
         
         # 使用模型預測 PM2.5 值
         pm25 = tm.predict_pm25(local_path, "pm25_model.pth")
@@ -55,12 +56,16 @@ def download_and_predict_task(station: int):
             "timestamp": current_time.isoformat(),
             "image_path": local_path,
             "pm25": pm25,
-            "latitude": 23.47545120,
+            "latitude": 23.47545,
             "longitude": 120.4473
         }
         
         # 更新 Prometheus 指標
-        pm25_latest.labels(latitude = 23.47545, longitude = 120.4473, station_id = station).set(pm25)
+        pm25_latest.labels( 
+                latitude = "23.47545",
+                longitude = "120.4473",
+                station_id = "42"
+        ).set(pm25)
         print(filename)
         print(f"Prediction successful. PM2.5: {pm25}, Image Path: {local_path}")
     
@@ -108,7 +113,7 @@ def get_latest_prediction(station: int):
             return latest_result[station]
     raise HTTPException(status_code=404, detail="No prediction data available yet.")
 
-@app.get("/metrics")
+@app.get("/metrics", response_class = PlainTextResponse)
 def metrics():
     """
     提供 Prometheus 格式的指標。
@@ -117,21 +122,21 @@ def metrics():
 
 @app.get("/get_image")
 def get_image():
-    image_path = "predict_img.jpg"  
+    image_path = "predict_img.jpg"
     if not os.path.exists(image_path):
-        raise HTTPException(status_code=404, detail="Image not found.")
+        raise HTTPException(status_code = 404, detail = "Image not found.")
     
     with open(image_path, "rb") as f:
         image_data = f.read()
-    
-    return Response(content=image_data, media_type="image/jpeg")
+
+    return Response(content = image_data, media_type = "image/jpeg")
 
 # @app.get("/get_image")
 # def get_image():
-#     """
-#     提供最新的圖片文件。
-#     """
-#     image_path = "predict_img.jpg"  # 圖片的存儲路徑
-#     if not os.path.exists(image_path):
-#         raise HTTPException(status_code=404, detail="Image not found.")
-#     return FileResponse(image_path, media_type="image/jpeg", filename="predict_img.jpg")
+#    """
+#    提供最新的圖片文件。
+#    """
+#    image_path = "predict_img.jpg"  # 圖片的存儲路徑
+#    if not os.path.exists(image_path):
+#        raise HTTPException(status_code=404, detail="Image not found.")
+#    return FileResponse(image_path, media_type="image/jpeg", filename="predict_img.jpg")
