@@ -9,9 +9,19 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi.responses import FileResponse
 from fastapi.responses import Response
 from fastapi.responses import PlainTextResponse
+import json
 
+CONFIG_FILE = "config.json"
 app = FastAPI()
 scheduler = BackgroundScheduler()
+
+with open(CONFIG_FILE, "r") as f:
+    config = json.load(f)
+ex_time_interval = config["crawler_time_interval_minutes"]
+ex_index = config["index"]
+ex_station_id = config["air_quality_station_prediction"][ex_index]["station_id"]
+ex_latitude = config["air_quality_station_prediction"][ex_index]["location"]["latitude"]
+ex_longitude = config["air_quality_station_prediction"][ex_index]["location"]["longitude"]
 
 # Prometheus 指標
 pm25_latest = Gauge("air_quality_prediction_pm25_microgram_cubic_meter", "Latest PM2.5 prediction value", ["latitude", "longitude", "station_id"])
@@ -56,15 +66,15 @@ def download_and_predict_task(station: int):
             "timestamp": current_time.isoformat(),
             "image_path": local_path,
             "pm25": pm25,
-            "latitude": 23.47545,
-            "longitude": 120.4473
+            "latitude": ex_latitude,
+            "longitude": ex_longitude
         }
         
         # 更新 Prometheus 指標
         pm25_latest.labels( 
-                latitude = "23.47545",
-                longitude = "120.4473",
-                station_id = "42"
+                latitude = ex_latitude,
+                longitude = ex_longitude,
+                station_id = ex_station_id
         ).set(pm25)
         print(filename)
         print(f"Prediction successful. PM2.5: {pm25}, Image Path: {local_path}")
@@ -85,7 +95,7 @@ async def lifespan(app: FastAPI):
     scheduler.add_job(
         download_and_predict_task,
         'interval',
-        minutes=1,
+        minutes=ex_time_interval,
         args=[station],
         id="pm25_job"
     )

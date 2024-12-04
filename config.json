@@ -1,0 +1,18 @@
+{
+    "exporter_port": 33625,
+    "crawler_time_interval_minutes": 1,
+    "index": 0,
+
+    "air_quality_station_prediction":
+    [
+        {
+            "station_id": 42,
+            "station_name": "chiayi",
+            "location": {
+                "latitude": 23.56072485225277,
+                "longitude": 120.47249742089286
+            },
+            "status": "active"              
+        }
+    ]
+}
